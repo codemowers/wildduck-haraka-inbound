@@ -21,14 +21,12 @@ is copied on top of them:
 | ---------------- | ---------------------------------------------------------- |
 | `plugins`        | `spf`, `clamd`, `rspamd`, `dkim_verify`, `wildduck`, `tls` |
 | `smtp.ini`       | listen on `[::0]:2525`, 1 worker                           |
-| `tls.ini`        | key `/cert/tls.key`, cert `/cert/tls.crt`                  |
+| `tls.ini`        | key `/cert/tls.key`, cert `/cert/tls.crt`, DH parameters `/dhparams/dhparams.pem` |
 | `rspamd.ini`     | rspamd at `rspamd:11333`                                   |
 | `clamd.ini`      | clamd at `clamav:3310`, rejects viruses                    |
 | `queue_dir`      | `/var/lib/haraka/queue`                                    |
 | `plugin_timeout` | 180 seconds                                                |
 | `wildduck.js`    | plugin defaults with `WILDDUCK_*` env overrides (below)    |
-
-`dhparams.pem` is generated at build time.
 
 ## Environment variables
 
@@ -72,6 +70,12 @@ hostname.
   that the entrypoint writes from `HARAKA_ME`.
 - Mount the TLS key and certificate at `/cert/tls.key` and `/cert/tls.crt`,
   for example from a Kubernetes TLS Secret.
+- Mount DH parameters at `/dhparams/dhparams.pem`. The image does not ship
+  them, so every deployment uses its own. Generate them with
+  `openssl dhparam -out dhparams.pem 2048` and store them in a Secret (see
+  [this Job](https://github.com/codemowers/kube/blob/main/wildduck/templates/dhparam.yaml)).
+  If the file is missing, Haraka tries to generate it at startup with
+  `openssl`, which the image does not include, so startup fails.
 
 ## Kubernetes example
 
@@ -97,11 +101,14 @@ containers:
     volumeMounts:
       - { name: var-lib-haraka, mountPath: /var/lib/haraka }
       - { name: cert, mountPath: /cert }
+      - { name: dhparams, mountPath: /dhparams }
 volumes:
   - name: var-lib-haraka
     emptyDir: {}
   - name: cert
     secret: { secretName: mail-tls }
+  - name: dhparams
+    secret: { secretName: dhparams }
 ```
 
 ## Using your own config
