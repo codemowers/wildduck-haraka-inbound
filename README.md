@@ -27,6 +27,7 @@ is copied on top of them:
 | `queue_dir`      | `/var/lib/haraka/queue`                                    |
 | `plugin_timeout` | 180 seconds                                                |
 | `wildduck.js`    | plugin defaults with `WILDDUCK_*` env overrides (below)    |
+| `me.js`          | hostname from `HARAKA_ME` (below)                          |
 
 ## Environment variables
 
@@ -63,11 +64,15 @@ Sets the hostname Haraka uses in its SMTP banner and in `Received` headers,
 for example `mail.example.com`. If it is unset, Haraka uses the container
 hostname.
 
+The image sets `HARAKA_JS_CONFIG=1`. With it, Haraka loads `config/<name>.js`
+when `config/<name>` is missing, so `config/me.js` supplies `me` from the
+environment. The same mechanism works for other config files. See
+[haraka-config](https://github.com/haraka/haraka-config).
+
 ## Runtime requirements
 
 - Runs as uid 65534 and works with a read-only root filesystem.
-- `/var/lib/haraka` must be writable. It holds the queue and the `me` file
-  that the entrypoint writes from `HARAKA_ME`.
+- `/var/lib/haraka` must be writable. It holds the queue.
 - Mount the TLS key and certificate at `/cert/tls.key` and `/cert/tls.crt`,
   for example from a Kubernetes TLS Secret.
 - Mount DH parameters at `/dhparams/dhparams.pem`. The image does not ship
